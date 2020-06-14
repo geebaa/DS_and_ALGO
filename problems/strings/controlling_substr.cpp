@@ -14,81 +14,84 @@ void store_result(pair<int,int> &indices,int l, int r)
 
 string shortest_controlling_substr(string &s,vector<char> &dict)
 {
+
     /*
-        general idea is to start expanding out the substring from right until
-        all dictionary letters are consumed and then start shrinking the substring
-        from left until one of the dictionary letters miss. At this point we know one 
-        of the sort string and store it if applicable in a global location. cotinue this
-        process until further expansion of right is not possible
-        start out with both l and r pointing to 0th locaiton in s
+        basic idea is to use left and right pointer to arrive at a substring that
+        contains all chracters of "t" . Then shrink the right pointer and use
+        sliding window technique to find out the minimum window. Keep the min window
+        globally updated.
+        pls note that the missing is the size of char_set and not t .
+        This is because of duplicates in t
+        and also there is a req_char_count that is populated with number of ocurances
+        of each unique character in t
     */
 
-    unordered_map<char,int> dict_counter;
-    unordered_set<char> dict_set(dict.begin(),dict.end());
-    int missing_characters=dict.size();
-    int l=0,r=0;
+    int l=0,r=-1;
     int n=s.size();
-    bool found_controlling_substr=false;
-    // initialize with the entire string length
-    pair<int,int> controlling_substr = make_pair(0,n-1);    
+    unordered_set<char> char_set(t.begin(),t.end());
+    pair<int,int> min_window(0,n-1);//set to max
+    unordered_map<char,int> char_count;
+    // since t can have duplicate characters we need to make sure we have a req_char_count per unique character
+    unordered_map<char,int> req_char_count;
+    bool window_found=false;
+    int missing = char_set.size();
 
-    // initialize all counters for the letters in dictionary to 0
-    for(auto letter:dict_set){
-        dict_counter[letter]=0;
+    for(auto letter:char_set){
+        char_count[letter]=0;
+        req_char_count[letter]=0;
+    }
+
+    for(auto letter:t){
+        req_char_count[letter]++;
+    }
+
+    for(auto c_count:req_char_count){
+        cout << c_count.first << " " << c_count.second<<endl;
     }
 
     while(r<n){
-        //cout << " l : " << l << " r : " << r << " miss : " << missing_characters << endl; 
-        while( (missing_characters > 0 ) && r<n){
-            //expand r
+        if(missing > 0){
+            //expand the window
             r++;
-            if(!(r<n)){
-                break;
-            }
-            if(dict_set.find(s[r]) != dict_set.end()){
-                //found the character in dict , it could be a new find
-                if(dict_counter[s[r]] == 0){
-                    // new find
-                    missing_characters--;
-                    dict_counter[s[r]]=1;
-                    if(missing_characters == 0){ // transitioned from 1 to 0
-                        // l to r is a new controlling substring
-                        store_result(controlling_substr,l,r);
-                        found_controlling_substr=true;
+            if(char_set.find(s[r]) != char_set.end()){
+                //found a interested character
+                char_count[s[r]] = char_count[s[r]] + 1;
+                if(char_count[s[r]] == req_char_count[s[r]]){
+                    //got the required number of characters of s[r]
+                    missing--;
+                    if(missing == 0){
+                        //new window with all characters
+                        store_result(min_window,l,r);
+                        window_found=true;
                     }
-                }else{
-                    // increment counter
-                    dict_counter[s[r]]++;
                 }
             }
-        }
-        //cout << " l : " << l << " r : " << r << " miss : " << missing_characters << endl; 
-        while( (missing_characters == 0) && r<n){
-            //expand l -- effectively shrink the window l<-->r
+        }else{
+            // shrink the window
             l++;
-            // note that l-1 --- > this is because the character excluded by doing a l++
-            // is at index l-1
-            if(dict_set.find(s[l-1]) != dict_set.end()){
-                dict_counter[s[l-1]]--;
-                //found the character in dict , it could be a new loss from substring
-                if(dict_counter[s[l-1]] == 0){
-                    // new loss 
-                    missing_characters++;
-                    if(missing_characters == 1){ // transitioned from 0 to 1
-                        // note l-1 because the addition of l++ caused controlling
-                        // substring to lose control
-                        store_result(controlling_substr,l-1,r); 
-                    }
+            // check if the character lost is interesting
+            if(char_set.find(s[l-1]) != char_set.end()){
+                char_count[s[l-1]] = char_count[s[l-1]]-1;
+                if(char_count[s[l-1]] == req_char_count[s[l-1]] - 1){
+                    //lost a character from the window
+                    missing++;
+                }else{
+                    //new window with all characters
+                    store_result(min_window,l,r);
                 }
+            }else{
+                //new window with all characters
+                store_result(min_window,l,r);
             }
         }
-    }
-    if(found_controlling_substr){
-        return s.substr(controlling_substr.first,(controlling_substr.second - controlling_substr.first + 1));
-    }else{
-        return "";
     }
 
+    cout << " window : " << min_window.first << " " << min_window.second<<endl;
+    if(window_found){
+        return s.substr(min_window.first,min_window.second-min_window.first+1);
+    }else{
+        return "-1";
+    }
 }
 
 int main()
