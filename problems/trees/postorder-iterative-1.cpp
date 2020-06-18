@@ -164,10 +164,40 @@ void helper(TreeNode* node,vector<int> &result){
 /*
     Complete the function below
 */
-vector<int> postorderTraversal(TreeNode* root){
+// uncomment if complicated method above is needed
+//vector<int> postorderTraversal(TreeNode* root){
+//    vector<int> result;
+//    helper(root,result);
+//    return result;    
+//}
+
+/*Another easy way is to get the reverse of postorder and then reverse that */
+void dfs_rev_postorder_iterative(TreeNode *root,vector<int> &result)
+{
+    stack<TreeNode*> s;
+    s.push(root);
+    while(!s.empty()){
+        TreeNode *node=s.top();
+        s.pop();
+        result.push_back(node->val);
+        // left has to go in first since ww want to process reverse of post_order (root,root->right,root->left) 
+        if(node->left_ptr){
+            s.push(node->left_ptr);
+        }
+        if(node->right_ptr){
+            s.push(node->right_ptr);
+        }
+
+    }
+}
+vector<int> postorderTraversal(TreeNode* root) {
     vector<int> result;
-    helper(root,result);
-    return result;    
+    if(!root){
+        return {};
+    }
+    dfs_rev_postorder_iterative(root,result);
+    reverse(result.begin(),result.end());
+    return result;
 }
 
 
