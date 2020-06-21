@@ -5,138 +5,86 @@ using namespace std;
 string ltrim(const string &);
 string rtrim(const string &);
 
-/*
- * Complete the 'find_shortest_distance_from_a_guard' function below.
- *
- * The function accepts the 2D CHARACTER ARRAY.
- * Returns 2D INTEGER ARRAY.
- */ 
-int n_rows;
-int n_cols;
-// adj list for every cell in grid
-map<pair<int,int>,vector<pair<int,int>>> adj_list;
-
-bool isNodeWall(pair<int,int> &node,vector<vector<char>> &grid){
-    return (grid[node.first][node.second] == 'W');
-}
-bool isNodeGuard(pair<int,int> &node,vector<vector<char>> &grid){
-    return (grid[node.first][node.second] == 'G');
-}
-bool isNeighbor(pair<int,int> &node,vector<vector<char>> &grid)
-{
-    
-    // valid neighbor is with in grid 
-    //            and
-    // not a wall
-    if(node.first<0 || node.first >= n_rows || node.second < 0 || node.second >= n_cols){
-        return false;
-    }
-    if(isNodeWall(node,grid)){
-        return false;
-    }
-
-
-    return true;
-}
-
-
-vector<pair<int,int>> getNeighbors(pair<int,int> &node,vector<vector<char>> &grid)
+vector<pair<int,int>> get_neighbor(vector<vector<char>> &grid,
+                                   pair<int,int> &node,
+                                   int &nrows,
+                                   int &ncols)
 {
     vector<pair<int,int>> neighbors;
-    pair<int,int> potential_neighbor;
-    // 4 potential neighbors
-    potential_neighbor=make_pair(node.first-1,node.second);
-    if(isNeighbor(potential_neighbor,grid)){
-        neighbors.push_back(potential_neighbor);
+    int r=node.first;
+    int c=node.second;
+    if(r-1>=0){
+        if(grid[r-1][c] == 'O'){
+            neighbors.push_back(make_pair(r-1,c));
+        }
     }
-    potential_neighbor=make_pair(node.first+1,node.second);
-    if(isNeighbor(potential_neighbor,grid)){
-        neighbors.push_back(potential_neighbor);
+    if(r+1 < nrows){
+        if(grid[r+1][c] == 'O'){
+            neighbors.push_back(make_pair(r+1,c));
+        }
     }
-    potential_neighbor=make_pair(node.first,node.second-1);
-    if(isNeighbor(potential_neighbor,grid)){
-        neighbors.push_back(potential_neighbor);
+    if(c-1>=0){
+        if(grid[r][c-1] == 'O'){
+            neighbors.push_back(make_pair(r,c-1));
+        }
     }
-    potential_neighbor=make_pair(node.first,node.second+1);
-    if(isNeighbor(potential_neighbor,grid)){
-        neighbors.push_back(potential_neighbor);
+    if(c+1<ncols){
+        if(grid[r][c+1] == 'O'){
+            neighbors.push_back(make_pair(r,c+1));
+        }
     }
     return neighbors;
-
 }
 
-void bfs(vector<vector<char>> &grid,int r,int c,vector<vector<int>> &parent,vector<vector<int>> &visited,vector<vector<int>> &nearest_gaurd)
+void bfs(vector<vector<char>> &grid,
+         vector<vector<int>> &distance_grid,
+         vector<vector<int>> &visited_grid,
+         int &nrows,
+         int &ncols)
 {
-
-    // find the nearest gaurd from r,c
+    //find all guards and add to the q
     queue<pair<int,int>> q;
-    // accumulate distance in visited
-    visited[r][c]=0;
-    q.push(make_pair(r,c));
-    vector<pair<int,int>> neighbors;
-    pair<int,int> node=make_pair(r,c);
-    if(isNodeWall(node,grid)){
-        //terminating condition no graph exploration needed if 
-        // current node is a wall
-        nearest_gaurd[r][c]=-1;
-        return;
+    for(int r=0;r<nrows;r++){
+        for(int c=0;c<ncols;c++){
+            if(grid[r][c]=='G'){
+                q.push(make_pair(r,c));
+                distance_grid[r][c]=0;
+            }
+        }
     }
+
     while(!q.empty()){
-        node=q.front();
+        pair<int,int> node=q.front();
         q.pop();
-        if(isNodeGuard(node,grid)){
-            //terminating condition
-            // copy accumulated distance for r,c from visited 
-            nearest_gaurd[r][c]=visited[node.first][node.second];
-            return;
-        }
-        //neighbors = getNeighbors(node,grid);
-        neighbors = adj_list[node];
-        for(auto neighbor:neighbors){
-            if(visited[neighbor.first][neighbor.second] == -1){
-                //unexplored node accumulate distance as distance to parent +1
-                // "node" is the parent of "neighbor"
-                visited[neighbor.first][neighbor.second]=visited[node.first][node.second]+1;
-                //add neighbor to q
-                q.push(make_pair(neighbor.first,neighbor.second));
+        vector<pair<int,int>> neighbors = get_neighbor(grid,node,nrows,ncols);
+        for(auto neighbor : neighbors){
+            if(distance_grid[neighbor.first][neighbor.second] == -1){
+                // this 'neighbor' is reached first from 'node'
+                distance_grid[neighbor.first][neighbor.second] = distance_grid[node.first][node.second] + 1;
+                q.push(neighbor);
             }
         }
     }
-    // no path to any guard store infinity
-    nearest_gaurd[r][c] = -1;
-    return;
-}
 
+}
 vector<vector<int>> find_shortest_distance_from_a_guard(vector<vector<char>> grid) {
-    n_rows=grid.size();
-    n_cols=(n_rows==0)?0:grid[0].size();
 
-    vector<vector<int>> nearest_gaurd(n_rows,vector<int>(n_cols,-1));
+    /*
+        every gaurd is a source and we start bfs from every source.
+        start the bfs by adding all guards to the queue 
+        then store the distance value when a cell is first reached
+    */
+    int nrows=grid.size();
+    int ncols=(nrows==0)?0:grid[0].size();
+    vector<vector<int>> distance_grid(nrows,vector<int>(ncols,-1));
+    vector<vector<int>> visited_grid(nrows,vector<int>(ncols,-1));
 
+    bfs(grid,distance_grid,visited_grid,nrows,ncols);
 
-    for(int r=0;r<n_rows;r++){
-        for(int c=0;c<n_cols;c++){
-            pair<int,int> node=make_pair(r,c);
-            vector<pair<int,int>> neighbors=getNeighbors(node,grid);
-            for(auto neighbor:neighbors){
-                adj_list[make_pair(r,c)].push_back(neighbor);
-            }
-        }
-    }
-    
-    for(int r=0;r<n_rows;r++){
-        for(int c=0;c<n_cols;c++){
-            // for every vertex in the graph (cell in the grid)
-            // calculate nearest distance
-            vector<vector<int>> visited(n_rows,vector<int>(n_cols,-1));
-            vector<vector<int>> parent(n_rows,vector<int>(n_cols,-1));
-            //nearest_gaurd[r][c] will be populated with the nearest gaurd
-            bfs(grid,r,c,parent,visited,nearest_gaurd);
-        }
-    }
-    return nearest_gaurd;
+    return distance_grid;
 
 }
+
 
 int main()
 {
