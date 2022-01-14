@@ -146,7 +146,8 @@ int get_next_location(int location) {
 // implements the core Consistent hash ring algorithm
 int get_server_for_location(int object_location) {
     
-    if(locations_to_server[object_location] != -1){
+    if(locations_to_server[object_location] != -1 &&
+       servers_down.find(locations_to_server[object_location]) == servers.end()){
         // serve the object from this server
         return locations_to_server[object_location];
     }
